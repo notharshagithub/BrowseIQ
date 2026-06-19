@@ -172,28 +172,38 @@ MAX_STEPS=10
 
 ## 💻 Running the App
 
-Run the main console:
+### 1. Run the Web Server (Production Mode)
+The backend FastAPI server automatically serves the fully compiled React frontend bundle out of the box.
+
+Simply start the server:
 ```bash
 python3 main.py
 ```
 
-### Command Line Flags
-You can configure options directly from the terminal:
-```bash
-# Launch with matrix green theme and headed window
-python3 main.py --url google.com --theme matrix --headful
-
-# Run in headless mode with retro amber styling
-./run_demo.sh --theme retro --headless --max-steps 5
+Then open your browser and navigate to:
+```text
+http://127.0.0.1:8000
 ```
 
-| Flag | Shortcut | Default | Description |
-|---|---|---|---|
-| `--url` | `-u` | From `.env` | Initial target URL to open. |
-| `--headless` | | From `.env` | Run browser in hidden headless mode. |
-| `--headful` | | From `.env` | Run browser in visible headful window mode. |
-| `--theme` | `-t` | `cyberpunk` | Color theme styling: `cyberpunk` (neon), `retro` (amber), or `matrix` (green). |
-| `--max-steps`| `-s` | From `.env` | Maximum autonomous steps allowed per task. |
+### 2. Running in Development Mode (Vite HMR)
+If you are modifying the React frontend and want hot-module reloading:
+
+1. Start the backend API server:
+   ```bash
+   python3 main.py
+   ```
+
+2. In a separate terminal tab, start the Vite dev server:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+3. Open your browser and navigate to:
+   ```text
+   http://localhost:5173
+   ```
+   *(API calls and screenshots will be automatically proxied to the backend running on port 8000).*
 
 ---
 
