@@ -2,24 +2,14 @@ import sys
 import logging
 import agent.config as config
 from agent.agent import WebsiteAutomationAgent
+import agent.theme as theme
 
 def main():
     """Main entrypoint to run the Website Automation Agent in a persistent browser console."""
     # Ensure standard logging is set up
     logger = logging.getLogger("main")
     
-    CYAN = "\033[36m"
-    GREEN = "\033[32m"
-    BOLD = "\033[1m"
-    RESET = "\033[0m"
-    print(f"\n{CYAN}{BOLD}=================================================================={RESET}")
-    print(f"{CYAN}{BOLD}  🤖 WELCOME TO THE AI WEBSITE AUTOMATION AGENT CONSOLE{RESET}")
-    print(f"{CYAN}{BOLD}=================================================================={RESET}")
-    print(f"  {BOLD}Instructions:{RESET}")
-    print(f"  1. Press {GREEN}Enter{RESET} to load the default target (Google), or type a URL.")
-    print(f"  2. Enter website tasks in plain English (e.g. 'search for ...').")
-    print(f"  3. Type {CYAN}'exit'{RESET} to switch websites, or {CYAN}'stop'{RESET} to exit completely.")
-    print(f"{CYAN}{BOLD}=================================================================={RESET}\n")
+    theme.print_welcome_banner()
     
     # Initialize the persistent agent
     agent = WebsiteAutomationAgent()
@@ -57,11 +47,7 @@ def main():
                 agent.close_session()
                 continue
                 
-            print("\n--------------------------------------------------------")
-            print(f"✅ Connected: {target_url}")
-            print("You can now enter tasks for this webpage below.")
-            print("Type 'exit' to switch websites, or 'stop' to exit completely.")
-            print("--------------------------------------------------------")
+            theme.print_status_card("CONNECTED TO WEB HOST", target_url, "CONNECTED")
             
             # 2. Task execution loop for the current page
             while True:
@@ -92,17 +78,12 @@ def main():
                         )
                         print("📝 Using default Shadcn form-filling instructions.")
                     
-                print(f"🤖 Executing task: '{task_details}'...")
+                theme.print_status_card("EXECUTING AUTONOMOUS AGENT", target_url, "ACTIVE")
                 success = agent.run_task(task_details)
                 
-                if success:
-                    print("\n✅ Task completed successfully (PASS)!")
-                else:
-                    print("\n❌ Task stopped (FAIL). Check screenshots/ and logs/agent.log for details.")
-                    
-                print("\n--------------------------------------------------------")
-                print("Ready for next task on this page...")
-                print("--------------------------------------------------------")
+                theme.print_horizontal_divider(theme.SINGLE_LINE, theme.CYAN)
+                print(" Ready for next task on this page...")
+                theme.print_horizontal_divider(theme.SINGLE_LINE, theme.CYAN)
                 
     except KeyboardInterrupt:
         print("\n\nSession interrupted. Cleaning up...")
