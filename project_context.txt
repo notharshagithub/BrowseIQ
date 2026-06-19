@@ -1,0 +1,50 @@
+================================================================================
+                           BrowseIQ Project Context
+================================================================================
+
+This document serves as a persistent context log for BrowseIQ browser automation agent. It details the project history, architecture, and recent refactoring milestones.
+
+--------------------------------------------------------------------------------
+1. Project Overview & Architecture
+--------------------------------------------------------------------------------
+BrowseIQ is an LLM-driven autonomous browser automation agent running on a perceive-decide-act cycle.
+- Backend: FastAPI (Python 3) driving Playwright.
+- Agent Coordinator (agent/agent.py): Controls the browser manager state, captures DOM interactives, sends them alongside the JPEG-compressed/resized screenshot to the LLM client (agent/llm_client.py), executes the selected actions (click, text inputs, etc.), and checks for completion.
+- Provider Support: Auto-routes Groq LPUs or xAI Grok based on the API key prefix.
+- Execution: python3 main.py serves the application.
+
+--------------------------------------------------------------------------------
+2. Web UI Migration Refactoring
+--------------------------------------------------------------------------------
+The application was migrated from a CLI utility into a modern single-page dashboard:
+- Framework: React (JSX) built with Vite in the `frontend/` subdirectory.
+- Design System: Cyberpunk neon dark theme utilizing CSS variables, glassmorphism panel styles, and Lucide SVG icons.
+- FastAPI Server Mounts: FastAPI mounts the `static/` directory to serve files. Vite is configured (vite.config.js) with `base: '/static/'` and `build.outDir: '../static'` (with `emptyOutDir: true`). Running `npm run build` compiles production assets directly into the FastAPI server's static mount directory, avoiding separate file serving issues.
+
+--------------------------------------------------------------------------------
+3. Single Command Prompt Terminal Layout (Recent Changes)
+--------------------------------------------------------------------------------
+To optimize widescreen visibility and streamline controls:
+- Layout: Switched to a single-column widescreen dashboard. The left NavigationCard and TaskCard controls were removed.
+- Integrated Input Prompt: A single unified text command prompt was added to the bottom of the Terminal panel (TelemetryFeed.jsx), directly below the browser mockup screenshot view.
+- Smart Prompt Routing:
+  - If input matches a URL (e.g., `google.com`, `http://...`) or starts with navigation commands (`go to `, `open `, `visit `, `navigate to `), it routes requests to navigation connection endpoints (/api/connect).
+  - Otherwise, input is sent to the autonomous agent autopilot task loop (/api/run-task).
+  - Special Commands: Typing "disconnect" or "clear" runs session close/log clearing handlers.
+  - Step Limit Options: The step count limit dropdown is placed next to the send button inside the prompt.
+
+--------------------------------------------------------------------------------
+4. Verification Status
+--------------------------------------------------------------------------------
+- Python test suite: Discover discovers 12 unit tests, all passing cleanly.
+- Frontend: Source code passes ESLint with 0 warnings or errors. Production builds compile successfully.
+- Repository: Main origin remote maps to: https://github.com/notharshagithub/BrowseIQ.git.
+
+--------------------------------------------------------------------------------
+5. Future Developer Guidelines
+--------------------------------------------------------------------------------
+- Always run `npm run build` in the `frontend` directory after editing JSX/CSS files to generate updated assets in `static/`.
+- Run tests using `python3 -m unittest discover tests`.
+- Do not add multiple input panels or recreate sidebar navigation unless requested; the combined command line prompt inside the terminal dashboard is the default unified entry point.
+- Start server using `python3 main.py` to test uvicorn hosting on port 8000.
+================================================================================
