@@ -5,4 +5,4 @@
 # ==========================================================
 
 echo "🚀 Starting AI Website Automation Agent Console..."
-python3 main.py
+python3 main.py "$@"
