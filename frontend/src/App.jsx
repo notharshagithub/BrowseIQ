@@ -1,23 +1,18 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
-import NavigationCard from './components/NavigationCard';
-import TaskCard from './components/TaskCard';
 import BrowserMockup from './components/BrowserMockup';
 import TelemetryFeed from './components/TelemetryFeed';
 import './App.css';
 
 export default function App() {
   const [status, setStatus] = useState('standby');
-  const [targetUrl, setTargetUrl] = useState('https://www.google.com');
   const [sessionUrl, setSessionUrl] = useState(null);
   const [screenshot, setScreenshot] = useState(null);
-  const [taskDesc, setTaskDesc] = useState('');
+  const [commandInput, setCommandInput] = useState('');
   const [taskSteps, setTaskSteps] = useState(5);
   const [logs, setLogs] = useState([
     { tag: 'system', text: 'BrowseIQ interface initialized. Waiting for web host connect...', type: 'thought' }
   ]);
-  const [loadingConnect, setLoadingConnect] = useState(false);
-  const [loadingTask, setLoadingTask] = useState(false);
 
   // Check active browser status on mount
   useEffect(() => {
@@ -47,42 +42,6 @@ export default function App() {
     setLogs(prev => [...prev, { tag, text, type }]);
   };
 
-  const handleConnect = async () => {
-    if (!targetUrl.trim()) {
-      addLog('system', 'Warning: Navigation target URL cannot be empty.', 'error');
-      return;
-    }
-
-    setLoadingConnect(true);
-    setStatus('connecting');
-    addLog('system', `Attempting connection to target url: '${targetUrl}'...`, 'thought');
-
-    try {
-      const response = await fetch('/api/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: targetUrl }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setSessionUrl(data.url);
-        setScreenshot(data.screenshot);
-        setStatus('connected');
-        addLog('system', `Successfully connected: ${data.url}`, 'observation');
-      } else {
-        throw new Error(data.detail || 'Navigation failed.');
-      }
-    } catch (err) {
-      setStatus('error');
-      addLog('error', `Connection failure: ${err.message}`, 'error');
-      setScreenshot(null);
-    } finally {
-      setLoadingConnect(false);
-    }
-  };
-
   const handleDisconnect = async () => {
     setStatus('connecting');
     addLog('system', 'Closing browser session...', 'thought');
@@ -103,68 +62,131 @@ export default function App() {
     }
   };
 
-  const handleLaunchTask = async () => {
-    if (!taskDesc.trim()) {
-      addLog('system', 'Warning: Task description cannot be empty.', 'error');
+  const handleCommandSubmit = async () => {
+    const input = commandInput.trim();
+    if (!input) return;
+
+    // Reset input prompt value instantly
+    setCommandInput('');
+
+    // Shortcut: Disconnect command
+    if (input.toLowerCase() === '/disconnect' || input.toLowerCase() === 'disconnect') {
+      await handleDisconnect();
       return;
     }
 
-    // Clear task text input field (UX improvement)
-    const taskInputToSubmit = taskDesc;
-    setTaskDesc('');
+    // Shortcut: Clear command
+    if (input.toLowerCase() === '/clear' || input.toLowerCase() === 'clear') {
+      handleClearLogs();
+      return;
+    }
 
-    // Clear terminal log screen automatically (UX improvement)
-    setLogs([]);
+    // Check if input should be treated as a target URL connection command
+    const isUrl = (str) => {
+      if (str.startsWith('http://') || str.startsWith('https://')) return true;
+      // Heuristic: No spaces, contains a dot
+      if (!str.includes(' ') && str.includes('.')) return true;
+      return false;
+    };
 
-    setLoadingTask(true);
-    setStatus('running');
-    
-    // We add the initial log after clearing the terminal logs
-    setLogs([
-      { tag: 'system', text: `Starting autonomous loop for: '${taskInputToSubmit}'`, type: 'thought' }
-    ]);
-
-    try {
-      const response = await fetch('/api/run-task', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: taskInputToSubmit, max_steps: taskSteps }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setScreenshot(data.screenshot);
-
-        // Append execution steps logs in sequence
-        if (data.logs && data.logs.length > 0) {
-          data.logs.forEach(log => {
-            if (log.type === 'thought') {
-              addLog('thought', log.content, 'thought');
-            } else if (log.type === 'action') {
-              addLog('actuator', log.desc, 'action');
-            } else if (log.type === 'observation') {
-              const outcome = log.success ? 'Done' : `Failed: ${log.message}`;
-              addLog('result', `${log.name} outcome: ${outcome}`, log.success ? 'observation' : 'error');
-            }
-          });
-        }
-
-        if (data.success) {
-          setStatus('connected');
-          addLog('success', `Task completed: ${data.summary}`, 'observation');
-        } else {
-          setStatus('failed');
-          addLog('failure', `Task stopped: ${data.summary}`, 'error');
-        }
-      } else {
-        throw new Error(data.detail || 'Task execution failed.');
+    const navPrefixes = ['go to ', 'open ', 'visit ', 'navigate to '];
+    let navUrl = null;
+    for (const prefix of navPrefixes) {
+      if (input.toLowerCase().startsWith(prefix)) {
+        navUrl = input.substring(prefix.length).trim();
+        break;
       }
-    } catch (err) {
-      setStatus('error');
-      addLog('error', `Task query crash: ${err.message}`, 'error');
-    } finally {
-      setLoadingTask(false);
+    }
+
+    if (isUrl(input)) {
+      navUrl = input;
+    }
+
+    if (navUrl) {
+      // Connect Target Site Action
+      if (!navUrl.startsWith('http://') && !navUrl.startsWith('https://')) {
+        navUrl = 'https://' + navUrl;
+      }
+      
+      setStatus('connecting');
+      addLog('system', `Attempting connection to target url: '${navUrl}'...`, 'thought');
+
+      try {
+        const response = await fetch('/api/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: navUrl }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setSessionUrl(data.url);
+          setScreenshot(data.screenshot);
+          setStatus('connected');
+          addLog('system', `Successfully connected: ${data.url}`, 'observation');
+        } else {
+          throw new Error(data.detail || 'Navigation failed.');
+        }
+      } catch (err) {
+        setStatus('error');
+        addLog('error', `Connection failure: ${err.message}`, 'error');
+        setScreenshot(null);
+      }
+    } else {
+      // Autopilot Agent Task Action
+      if (!sessionUrl) {
+        addLog('system', "Warning: Browser session is not connected. Enter a URL first (e.g. 'google.com' or 'open wikipedia.org') to connect.", 'error');
+        return;
+      }
+
+      // UX Requirement: Clear log feeds automatically on start of new task run loop
+      setLogs([]);
+      setStatus('running');
+
+      setLogs([
+        { tag: 'system', text: `Starting autonomous loop for: '${input}'`, type: 'thought' }
+      ]);
+
+      try {
+        const response = await fetch('/api/run-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: input, max_steps: taskSteps }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setScreenshot(data.screenshot);
+
+          if (data.logs && data.logs.length > 0) {
+            data.logs.forEach(log => {
+              if (log.type === 'thought') {
+                addLog('thought', log.content, 'thought');
+              } else if (log.type === 'action') {
+                addLog('actuator', log.desc, 'action');
+              } else if (log.type === 'observation') {
+                const outcome = log.success ? 'Done' : `Failed: ${log.message}`;
+                addLog('result', `${log.name} outcome: ${outcome}`, log.success ? 'observation' : 'error');
+              }
+            });
+          }
+
+          if (data.success) {
+            setStatus('connected');
+            addLog('success', `Task completed: ${data.summary}`, 'observation');
+          } else {
+            setStatus('failed');
+            addLog('failure', `Task stopped: ${data.summary}`, 'error');
+          }
+        } else {
+          throw new Error(data.detail || 'Task execution failed.');
+        }
+      } catch (err) {
+        setStatus('error');
+        addLog('error', `Task query crash: ${err.message}`, 'error');
+      }
     }
   };
 
@@ -177,40 +199,24 @@ export default function App() {
     <div className="app-root-container">
       <Header status={status} />
       
-      <main className="dashboard-container">
-        {/* Left Control Panel */}
-        <aside className="control-panel">
-          <NavigationCard
-            targetUrl={targetUrl}
-            setTargetUrl={setTargetUrl}
-            sessionUrl={sessionUrl}
-            status={status}
-            loadingConnect={loadingConnect}
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-          />
-          <TaskCard
-            taskDesc={taskDesc}
-            setTaskDesc={setTaskDesc}
-            taskSteps={taskSteps}
-            setTaskSteps={setTaskSteps}
-            sessionUrl={sessionUrl}
-            status={status}
-            loadingTask={loadingTask}
-            onLaunch={handleLaunchTask}
-          />
-        </aside>
-
-        {/* Right Workspace Viewer & Terminal Console */}
+      <main className="dashboard-container single-column">
+        {/* Workspace Viewer & Terminal Console (No sidebar) */}
         <section className="viewer-container">
           <BrowserMockup
             sessionUrl={sessionUrl}
             screenshot={screenshot}
-            status={status}
           />
           <TelemetryFeed
             logs={logs}
             onClear={handleClearLogs}
+            inputValue={commandInput}
+            setInputValue={setCommandInput}
+            maxSteps={taskSteps}
+            setMaxSteps={setTaskSteps}
+            status={status}
+            onSubmit={handleCommandSubmit}
+            onDisconnect={handleDisconnect}
+            sessionUrl={sessionUrl}
           />
         </section>
       </main>
