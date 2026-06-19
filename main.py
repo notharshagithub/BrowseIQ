@@ -1,121 +1,131 @@
+import os
 import sys
 import logging
-import argparse
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import uvicorn
+
 import agent.config as config
 from agent.agent import WebsiteAutomationAgent
-import agent.theme as theme
 
-def main():
-    """Main entrypoint to run the BrowseIQ Agent in a persistent browser console."""
-    # Ensure standard logging is set up
-    logger = logging.getLogger("main")
-    
-    # Setup argparse CLI parameter parser
-    parser = argparse.ArgumentParser(description="BrowseIQ CLI Console")
-    parser.add_argument("-u", "--url", type=str, help="Default target URL to load on launch")
-    parser.add_argument("--headless", action="store_true", help="Launch browser in headless mode")
-    parser.add_argument("--headful", action="store_true", help="Launch browser in headful mode (visible window)")
-    parser.add_argument("-t", "--theme", type=str, choices=["cyberpunk", "retro", "matrix"], default="cyberpunk", help="Console theme aesthetic")
-    parser.add_argument("-s", "--max-steps", type=int, help="Maximum cognitive steps allowed per task")
-    args = parser.parse_args()
+# Set up logging configuration
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("main_web")
 
-    # Apply command line options to configuration
-    if args.url:
-        config.TARGET_URL = args.url
-    if args.headless:
-        config.HEADLESS = True
-    elif args.headful:
-        config.HEADLESS = False
-    if args.max_steps:
-        config.MAX_STEPS = args.max_steps
-        
-    # Apply dynamic color theme
-    theme.set_theme(args.theme)
-    
-    theme.print_welcome_banner()
-    
-    # Initialize the persistent agent
-    agent = WebsiteAutomationAgent()
-    
+app = FastAPI(title="BrowseIQ Web Interface")
+
+# Initialize persistent BrowseIQ Agent
+agent = WebsiteAutomationAgent()
+
+# Ensure screenshots and static directories exist
+STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "static"))
+os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(config.SCREENSHOTS_DIR, exist_ok=True)
+
+# Mount screenshots directory to serve images dynamically
+app.mount("/screenshots", StaticFiles(directory=config.SCREENSHOTS_DIR), name="screenshots")
+# Mount static assets if static folder exists
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+class ConnectRequest(BaseModel):
+    url: str
+
+class TaskRequest(BaseModel):
+    task: str
+    max_steps: Optional[int] = None
+
+def get_web_screenshot_path(abs_path: Optional[str]) -> Optional[str]:
+    """Converts absolute screenshot file path to web-accessible URL."""
+    if not abs_path:
+        return None
     try:
-        while True:
-            # 1. Prompt user for website link
-            default_url = config.TARGET_URL
-            user_url = input(f"\nEnter Website Link to load [Default: {default_url}, or 'stop' to exit]: ").strip()
-            
-            # Check exit criteria
-            if user_url.lower() in ("stop", "exit"):
-                print("\nExiting agent console. Goodbye!")
-                break
-                
-            target_url = user_url if user_url else default_url
-            
-            # Prepend protocol if domain only
-            if target_url and not target_url.startswith(("http://", "https://")):
-                target_url = "https://" + target_url
-                
-            # Launch the browser if not already open or if it has been closed
-            if not agent.is_session_healthy:
-                agent.close_session()
-                print(f"🚀 Launching browser context (headless={config.HEADLESS})...")
-                if not agent.start_session(headless=config.HEADLESS):
-                    print("❌ Error starting browser. Please check configuration.")
-                    continue
-            
-            # Navigate to the website
-            print(f"🌐 Navigating to {target_url}...")
-            if not agent.navigate_to(target_url):
-                print(f"❌ Error navigating to {target_url}.")
-                # If navigation fails, we close the session to ensure clean state
-                agent.close_session()
-                continue
-                
-            theme.print_status_card("CONNECTED TO WEB HOST", target_url, "CONNECTED")
-            
-            # 2. Task execution loop for the current page
-            while True:
-                task_details = input(f"\nTask for {target_url} (or 'exit'/'stop'): ").strip()
-                
-                # Check exit commands
-                if task_details.lower() == "exit":
-                    print(f"🔌 Closing browser session for {target_url}...")
-                    agent.close_session()
-                    break
-                    
-                if task_details.lower() == "stop":
-                    print("\nExiting agent console. Goodbye!")
-                    agent.close_session()
-                    sys.exit(0)
-                    
-                if not task_details:
-                    if "google.com" in target_url:
-                        task_details = "Type 'playwright python' into the search input and click the search button to submit."
-                        print("📝 Using default Google search instructions.")
-                    else:
-                        task_details = (
-                            "Locate the demo form. In this form:\n"
-                            "- Fill the Name (labeled 'Bug Title' or with id '#form-rhf-demo-title') with 'John Doe'.\n"
-                            "- Fill the Description field (id '#form-rhf-demo-description') with 'This is a test description filled by an automation agent.'\n"
-                            "- Submit the form by clicking the black Submit button.\n"
-                            "- Capture a screenshot of the popup confirmation and mark the task complete."
-                        )
-                        print("📝 Using default Shadcn form-filling instructions.")
-                    
-                theme.print_status_card("EXECUTING AUTONOMOUS AGENT", target_url, "ACTIVE")
-                success = agent.run_task(task_details)
-                
-                theme.print_horizontal_divider(theme.SINGLE_LINE, theme.CYAN)
-                print(" Ready for next task on this page...")
-                theme.print_horizontal_divider(theme.SINGLE_LINE, theme.CYAN)
-                
-    except KeyboardInterrupt:
-        print("\n\nSession interrupted. Cleaning up...")
-    finally:
-        # Guarantee cleanup
-        if agent.session_active:
-            agent.close_session()
-            
-    sys.exit(0)
+        rel_path = os.path.relpath(abs_path, config.SCREENSHOTS_DIR)
+        return f"/screenshots/{rel_path.replace(os.sep, '/')}"
+    except Exception:
+        return None
+
+@app.get("/", response_class=HTMLResponse)
+async def read_index():
+    index_file = os.path.join(STATIC_DIR, "index.html")
+    if not os.path.exists(index_file):
+        raise HTTPException(status_code=404, detail="Frontend file static/index.html not found.")
+    return FileResponse(index_file)
+
+@app.post("/api/connect")
+async def connect(data: ConnectRequest):
+    target_url = data.url.strip()
+    if not target_url:
+        target_url = config.TARGET_URL
+        
+    if not target_url.startswith(("http://", "https://")):
+        target_url = "https://" + target_url
+
+    # Check session health and launch if needed
+    if not agent.is_session_healthy:
+        agent.close_session()
+        logger.info(f"Launching browser (headless={config.HEADLESS})...")
+        if not agent.start_session(headless=config.HEADLESS):
+            raise HTTPException(status_code=500, detail="Failed to initialize browser context.")
+
+    logger.info(f"Navigating to {target_url}...")
+    if not agent.navigate_to(target_url):
+        agent.close_session()
+        raise HTTPException(status_code=500, detail=f"Failed to navigate to target URL: {target_url}")
+
+    # Capture initial view screenshot
+    screenshot_res = agent.browser_manager.take_screenshot("initial_connect.png")
+    screenshot_url = get_web_screenshot_path(screenshot_res.get("path"))
+
+    return {
+        "success": True,
+        "message": f"Connected to {target_url}",
+        "url": target_url,
+        "screenshot": screenshot_url
+    }
+
+@app.post("/api/run-task")
+async def run_task(data: TaskRequest):
+    task_desc = data.task.strip()
+    if not task_desc:
+        raise HTTPException(status_code=400, detail="Task description cannot be empty.")
+
+    if not agent.is_session_healthy:
+        raise HTTPException(status_code=400, detail="No active web session. Connect to a website first.")
+
+    max_steps = data.max_steps or config.MAX_STEPS
+    logger.info(f"Executing task: '{task_desc}' (max_steps={max_steps})...")
+    
+    success = agent.run_task(task_desc, max_steps=max_steps)
+    
+    # Capture latest screenshot
+    screenshot_res = agent.browser_manager.take_screenshot("web_latest.png")
+    screenshot_url = get_web_screenshot_path(screenshot_res.get("path"))
+
+    return {
+        "success": success,
+        "logs": agent.step_logs,
+        "screenshot": screenshot_url,
+        "summary": agent.success_summary or agent.last_failure_reason or ("Task completed." if success else "Task failed.")
+    }
+
+@app.get("/api/status")
+async def get_status():
+    return {
+        "session_active": agent.session_active,
+        "is_healthy": agent.is_session_healthy,
+        "current_url": agent.current_url,
+        "last_failure_reason": agent.last_failure_reason
+    }
+
+@app.post("/api/disconnect")
+async def disconnect():
+    if agent.session_active:
+        agent.close_session()
+    return {"success": True, "message": "Browser session closed."}
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

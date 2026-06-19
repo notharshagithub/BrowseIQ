@@ -1,8 +1,9 @@
 #!/bin/bash
 # ==========================================================
-# AI Website Automation Agent Runner
-# Convenient script to launch the headed browser automation.
+# BrowseIQ Web Interface Runner
+# Launches the FastAPI web server for BrowseIQ.
 # ==========================================================
 
-echo "🚀 Starting AI Website Automation Agent Console..."
+echo "🚀 Starting BrowseIQ Web Interface Server..."
+echo "🌐 Open your web browser at: http://127.0.0.1:8000"
 python3 main.py "$@"

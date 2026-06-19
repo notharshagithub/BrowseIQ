@@ -2,3 +2,5 @@ playwright==1.60.0
 openai==2.43.0
 pillow==12.2.0
 python-dotenv==1.2.2
+fastapi==0.110.0
+uvicorn==0.28.0
