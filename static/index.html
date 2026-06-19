@@ -733,6 +733,9 @@
                 return;
             }
 
+            // Clear the task input textarea to keep the UX clean
+            taskDescInput.value = "";
+
             // Clear telemetry logs pane automatically when starting a new loop
             terminalPane.innerHTML = "";
 
