@@ -176,3 +176,5 @@ class LLMClient:
                 
         logger.error("All LLM API call attempts failed.")
         raise last_exception
+
+# Verify LLM vision capabilities support
