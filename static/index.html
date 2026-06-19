@@ -656,6 +656,9 @@
                 return;
             }
 
+            // Clear telemetry logs pane automatically when starting a new loop
+            terminalPane.innerHTML = "";
+
             btnRunTask.disabled = true;
             btnConnect.disabled = true;
             btnDisconnect.disabled = true;
