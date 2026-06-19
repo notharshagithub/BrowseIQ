@@ -178,3 +178,5 @@ class LLMClient:
         raise last_exception
 
 # Verify LLM vision capabilities support
+
+# Compact history payloads before transmission
