@@ -1,4 +1,3 @@
-import React from 'react';
 import { Globe, Link, Link2Off } from 'lucide-react';
 
 export default function NavigationCard({

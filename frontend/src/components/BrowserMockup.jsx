@@ -1,7 +1,6 @@
-import React from 'react';
 import { Lock, Monitor } from 'lucide-react';
 
-export default function BrowserMockup({ sessionUrl, screenshot, status }) {
+export default function BrowserMockup({ sessionUrl, screenshot }) {
   // Prevent browser screenshot caching by adding a unique query param
   const screenshotUrl = screenshot ? `${screenshot}?t=${new Date().getTime()}` : null;
 

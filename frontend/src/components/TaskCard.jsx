@@ -1,4 +1,3 @@
-import React from 'react';
 import { Cpu, Play } from 'lucide-react';
 
 export default function TaskCard({
