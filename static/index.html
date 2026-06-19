@@ -162,7 +162,7 @@
 
         /* Left Side Control Panel */
         .control-panel {
-            background-color: rgba(15, 23, 42, 0.6);
+            background-color: rgba(10, 10, 24, 0.4);
             border-right: 1px solid var(--panel-border);
             padding: 1.5rem;
             display: flex;
@@ -174,25 +174,33 @@
         .section-card {
             background-color: var(--panel-dark);
             border: 1px solid var(--panel-border);
-            border-radius: 1rem;
-            padding: 1.25rem;
+            border-radius: 1.25rem;
+            padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            gap: 1.25rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            transition: var(--transition);
+        }
+
+        .section-card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.1);
         }
 
         .section-title {
             font-size: 0.95rem;
             font-weight: 600;
-            color: var(--text-mute);
+            color: var(--neon-cyan);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
             border-bottom: 1px solid var(--panel-border);
             padding-bottom: 0.5rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
         }
 
         .input-group {
@@ -205,24 +213,26 @@
             font-size: 0.8rem;
             font-weight: 600;
             color: var(--text-mute);
+            letter-spacing: 0.03em;
         }
 
         input, textarea, select {
-            background-color: rgba(30, 41, 59, 0.3);
+            background-color: rgba(10, 10, 26, 0.5);
             border: 1px solid var(--panel-border);
-            border-radius: 0.5rem;
-            padding: 0.75rem;
+            border-radius: 0.75rem;
+            padding: 0.85rem;
             color: var(--text-main);
             font-family: inherit;
             font-size: 0.9rem;
             outline: none;
             transition: var(--transition);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
         }
 
         input:focus, textarea:focus, select:focus {
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
-            background-color: rgba(30, 41, 59, 0.5);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3), inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+            background-color: rgba(10, 10, 26, 0.8);
         }
 
         textarea {
@@ -231,11 +241,11 @@
             line-height: 1.4;
         }
 
-        /* Custom Cyber Buttons */
+        /* Custom Premium Buttons */
         .btn {
-            border-radius: 0.5rem;
-            padding: 0.75rem 1.25rem;
-            font-weight: 600;
+            border-radius: 0.75rem;
+            padding: 0.85rem 1.5rem;
+            font-weight: 700;
             font-size: 0.9rem;
             cursor: pointer;
             outline: none;
@@ -246,33 +256,53 @@
             gap: 0.5rem;
             border: none;
             color: white;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.03em;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .btn:hover::after {
+            opacity: 1;
         }
 
         .btn-cyan {
-            background: linear-gradient(135deg, #0891b2, #06b6d4);
-            box-shadow: 0 4px 10px rgba(6, 182, 212, 0.2);
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
         }
 
         .btn-cyan:hover:not(:disabled) {
-            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.45);
             transform: translateY(-1px);
         }
 
         .btn-pink {
-            background: linear-gradient(135deg, #c026d3, #d946ef);
-            box-shadow: 0 4px 10px rgba(217, 70, 239, 0.2);
+            background: linear-gradient(135deg, #f761a1, #8c1bab);
+            box-shadow: 0 4px 15px rgba(247, 97, 161, 0.25);
         }
 
         .btn-pink:hover:not(:disabled) {
-            box-shadow: 0 4px 15px rgba(217, 70, 239, 0.4);
+            box-shadow: 0 4px 20px rgba(247, 97, 161, 0.45);
             transform: translateY(-1px);
         }
 
         .btn:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
-            box-shadow: none;
+            box-shadow: none !important;
+            transform: none !important;
         }
 
         .btn-disconnect {
@@ -282,7 +312,9 @@
         }
 
         .btn-disconnect:hover:not(:disabled) {
-            background: rgba(239, 68, 68, 0.1);
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--neon-red);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);
         }
 
         /* Right Side Viewer and Console Output */
