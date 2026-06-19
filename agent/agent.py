@@ -347,3 +347,5 @@ You must call `task_complete` with a brief summary when you have completed the u
         self.session_active = False
 
 # Coordinator looping step execution controller
+
+# Setup rotating logging handlers
