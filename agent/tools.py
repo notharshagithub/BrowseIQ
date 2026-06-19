@@ -609,3 +609,5 @@ GROK_TOOLS = [
         }
     }
 ]
+
+# Resolve Playwright CSS selectors
