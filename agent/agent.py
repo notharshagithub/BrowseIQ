@@ -345,3 +345,5 @@ You must call `task_complete` with a brief summary when you have completed the u
         logger.info("Closing persistent browser session.")
         self.browser_manager.close_browser()
         self.session_active = False
+
+# Coordinator looping step execution controller
