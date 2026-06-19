@@ -54,6 +54,7 @@ class WebsiteAutomationAgent:
         self.current_url = None # Track current website URL
         self.last_failure_reason = None
         self.success_summary = None
+        self.step_logs = []
         
         # Build tools list for Grok including the completion tool
         self.tools = list(GROK_TOOLS)
@@ -124,6 +125,7 @@ class WebsiteAutomationAgent:
         """Performs a task description on the already-opened webpage state, loops autonomously to complete it."""
         self.last_failure_reason = None
         self.success_summary = None
+        self.step_logs = []
         if not self.is_session_healthy:
             logger.info("Browser session is not healthy or has been closed. Re-starting session...")
             self.close_session()
@@ -207,6 +209,10 @@ You must call `task_complete` with a brief summary when you have completed the u
                 
                 if text_content:
                     logger.info(f"LLM Reasoning: {text_content}")
+                    self.step_logs.append({
+                        "type": "thought",
+                        "content": text_content
+                    })
                 
                 if not tool_calls:
                     logger.warning("LLM response did not request any tool call. Retrying in 2 seconds...")
@@ -244,10 +250,26 @@ You must call `task_complete` with a brief summary when you have completed the u
                     logger.info(f"ACTING: Executing tool '{name}' with args {args}")
                     theme.print_tool_execution(name, args)
                     
+                    # Log action start
+                    desc = theme.get_semantic_description(name, args)
+                    self.step_logs.append({
+                        "type": "action",
+                        "name": name,
+                        "desc": desc
+                    })
+                    
                     # Execute tool action
                     tool_result = self.execute_tool(name, args)
                     logger.info(f"OBSERVATION: Tool '{name}' returned: {tool_result}")
                     theme.print_tool_observation(tool_result)
+                    
+                    # Log action end status
+                    self.step_logs.append({
+                        "type": "observation",
+                        "name": name,
+                        "success": tool_result.get("success", False),
+                        "message": tool_result.get("message", "Success")
+                    })
                     
                     if not tool_result.get("success", False):
                         self.last_failure_reason = f"Actuator tool '{name}' execution failed: {tool_result.get('message', 'No detail message')}"
