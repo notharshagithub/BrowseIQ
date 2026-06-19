@@ -138,6 +138,16 @@ class PlaywrightBrowserManager:
                 logger.info(f"Coordinates ({x}, {y}) matched element '{matched_element['label']}' with selector '{selector}'. Attempting selector click first.")
                 locator = self.resolve_locator(selector)
                 if locator:
+                    # Scroll the element into view first, and update center coordinates
+                    try:
+                        locator.scroll_into_view_if_needed(timeout=3000)
+                        box = locator.bounding_box()
+                        if box:
+                            x = int(box["x"] + box["width"] / 2)
+                            y = int(box["y"] + box["height"] / 2)
+                    except Exception as scroll_err:
+                        logger.warning(f"Could not scroll matching element into view: {scroll_err}")
+
                     try:
                         locator.wait_for(state="visible", timeout=3000)
                         # Regular click
@@ -158,6 +168,16 @@ class PlaywrightBrowserManager:
                             logger.warning(f"Forced click failed: {force_err}. Falling back to raw coordinate mouse click at ({x}, {y})")
             
             # Fallback to raw coordinate mouse click (bypasses pointer interception checks)
+            viewport_size = self.page.viewport_size or {"width": 1280, "height": 800}
+            vh = viewport_size["height"]
+            
+            if y < 0 or y > vh:
+                scroll_y = y - int(vh / 2)
+                logger.info(f"Coordinates ({x}, {y}) are outside viewport (height={vh}). Scrolling page by {scroll_y}px to center coordinates.")
+                self.page.evaluate(f"window.scrollBy(0, {scroll_y})")
+                self.page.wait_for_timeout(500)
+                y = int(vh / 2)
+
             logger.info(f"Clicking raw coordinates ({x}, {y})")
             self.page.mouse.click(x, y)
             self.page.wait_for_timeout(1000) # Wait for click animations
@@ -404,28 +424,10 @@ class PlaywrightBrowserManager:
                         return;
                     }
                     
-                    // Generate a clean selector path
-                    let selector = '';
-                    if (el.id) {
-                        selector = `#${el.id}`;
-                    } else if (el.name) {
-                        selector = `${tagName}[name="${el.name}"]`;
-                    } else if (el.getAttribute('placeholder')) {
-                        selector = `${tagName}[placeholder="${el.getAttribute('placeholder')}"]`;
-                    } else if (['button', 'a'].includes(tagName) && el.innerText.trim()) {
-                        const cleanText = el.innerText.trim().replace(/\\n/g, ' ').replace(/"/g, '\\\\"').substring(0, 30);
-                        selector = `${tagName}:has-text("${cleanText}")`;
-                    } else {
-                        selector = tagName;
-                        if (el.className) {
-                            const classList = Array.from(el.classList).filter(c => !c.includes(':') && /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(c));
-                            if (classList.length > 0) {
-                                selector += '.' + classList.join('.');
-                            }
-                        }
-                    }
-                    
                     idCounter++;
+                    el.setAttribute('data-browseiq-id', idCounter);
+                    const finalSelector = `[data-browseiq-id="${idCounter}"]`;
+                    
                     elements.push({
                         id: idCounter,
                         tag: tagName,
@@ -433,7 +435,7 @@ class PlaywrightBrowserManager:
                         text: el.innerText ? el.innerText.substring(0, 50).trim() : '',
                         label: label,
                         placeholder: el.getAttribute('placeholder') || '',
-                        selector: selector,
+                        selector: finalSelector,
                         x: Math.round(rect.left + rect.width / 2),
                         y: Math.round(rect.top + rect.height / 2),
                         width: Math.round(rect.width),

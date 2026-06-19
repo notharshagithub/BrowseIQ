@@ -56,7 +56,7 @@ class WebsiteAutomationAgent:
         self.success_summary = None
         self.step_logs = []
         
-        # Build tools list for Grok including the completion tool
+        # Build tools list for Grok including the completion and failure tools
         self.tools = list(GROK_TOOLS)
         self.tools.append({
             "type": "function",
@@ -72,6 +72,23 @@ class WebsiteAutomationAgent:
                         }
                     },
                     "required": ["summary"]
+                }
+            }
+        })
+        self.tools.append({
+            "type": "function",
+            "function": {
+                "name": "task_failed",
+                "description": "Signals that the website automation task has failed or cannot be completed (e.g. blocked by CAPTCHA, required element missing, or invalid instructions).",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "reason": {
+                            "type": "string",
+                            "description": "The detailed reason why the task failed or could not be completed."
+                        }
+                    },
+                    "required": ["reason"]
                 }
             }
         })
@@ -142,6 +159,7 @@ class WebsiteAutomationAgent:
             
         # Reset task status and clear old history to avoid LLM confusion from previous tasks
         self.task_completed = False
+        self.task_failed_signal = False
         self.conversation_history = []
         self.screenshot_taken = False
         task_step = 0
@@ -162,9 +180,11 @@ OPERATING PRINCIPLES:
 - To input text into a field, call `send_keys` with the element's selector or semantic label.
 - If the target elements are not visible, use `scroll` to scroll down.
 - Once the task has been successfully completed, call `task_complete` with a summary of the operations performed.
+- If you encounter a blocker (like CAPTCHA, a required element not existing, or if you cannot proceed), call `task_failed` with the reason. Do NOT call `task_complete` for failures!
 
-COMPLETION CRITERIA:
-You must call `task_complete` with a brief summary when you have completed the user's task.
+COMPLETION/FAILURE CRITERIA:
+- Call `task_complete` ONLY when the task has been successfully and fully completed.
+- Call `task_failed` if the task cannot be completed due to blockers or error states.
 """
 
         logger.info(f"--- Starting Task Loop for: '{task_description}' ---")
@@ -176,7 +196,7 @@ You must call `task_complete` with a brief summary when you have completed the u
         })
 
         try:
-            while task_step < max_steps and not self.task_completed:
+            while task_step < max_steps and not self.task_completed and not getattr(self, "task_failed_signal", False):
                 task_step += 1
                 self.step_count += 1
                 logger.info(f"\n=== AGENT LOOP STEP {task_step}/{max_steps} (Global Step: {self.step_count}) ===")
@@ -280,10 +300,10 @@ You must call `task_complete` with a brief summary when you have completed the u
                         "content": json.dumps(tool_result)
                     })
                     
-                    if self.task_completed:
+                    if self.task_completed or getattr(self, "task_failed_signal", False):
                         break
                         
-            if self.task_completed:
+            if self.task_completed and not getattr(self, "task_failed_signal", False):
                 # Capture exactly one success screenshot per task if not already captured
                 if not getattr(self, "screenshot_taken", False):
                     self.browser_manager.take_screenshot(f"task_{self.step_count}_success.png")
@@ -314,6 +334,12 @@ You must call `task_complete` with a brief summary when you have completed the u
                 self.task_completed = True
                 self.success_summary = summary
                 return {"success": True, "message": f"Task complete acknowledged: {summary}"}
+                
+            elif name == "task_failed":
+                reason = arguments.get("reason", "Task failed.")
+                self.task_failed_signal = True
+                self.last_failure_reason = reason
+                return {"success": True, "message": f"Task failure acknowledged: {reason}"}
                 
             elif name == "open_browser":
                 headless = arguments.get("headless", config.HEADLESS)

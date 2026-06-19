@@ -57,5 +57,27 @@ class TestAgent(unittest.TestCase):
         self.assertFalse(success)
         self.assertIn("Could not initialize or launch browser context", agent.last_failure_reason)
 
+    @patch('agent.agent.PlaywrightBrowserManager')
+    @patch('agent.agent.LLMClient')
+    def test_agent_task_failed_tool(self, mock_llm_client, mock_browser_mgr):
+        """Verify task_failed tool stops execution loop and returns failure."""
+        mock_browser_instance = MagicMock()
+        mock_browser_mgr.return_value = mock_browser_instance
+        
+        # Configure LLM Client mock directly
+        mock_tc = MagicMock()
+        mock_tc.function.name = "task_failed"
+        mock_tc.function.arguments = '{"reason": "CAPTCHA blocker encountered"}'
+        
+        mock_llm_client.return_value.query.return_value = ("Failed task thought", [mock_tc])
+        mock_llm_client.return_value.is_vision_model = False
+        
+        agent = WebsiteAutomationAgent()
+        agent.session_active = True
+        
+        success = agent.run_task("Click some button", max_steps=3)
+        self.assertFalse(success)
+        self.assertEqual(agent.last_failure_reason, "CAPTCHA blocker encountered")
+
 if __name__ == '__main__':
     unittest.main()
