@@ -191,7 +191,7 @@ class PlaywrightBrowserManager:
             return {"success": False, "message": msg}
 
     def send_keys(self, selector: str, text: str) -> dict:
-        """Types keys into selector, clearing it first. Exposed to the LLM."""
+        """Types keys into selector, clearing it first. Emulates keyboard for maximum compatibility."""
         if not self.page:
             return {"success": False, "message": "Browser is not open. Call open_browser first."}
         try:
@@ -199,26 +199,53 @@ class PlaywrightBrowserManager:
             locator = self.resolve_locator(selector)
             if not locator:
                 return {"success": False, "message": f"Could not find element matching: '{selector}'"}
-            
+
+            # Check if we just want to press Enter or Submit
+            if text in ("Enter", "{Enter}", "Submit"):
+                locator.focus(timeout=3000)
+                self.page.wait_for_timeout(200)
+                self.page.keyboard.press("Enter")
+                msg = f"Successfully pressed Enter on '{selector}'"
+                logger.info(msg)
+                return {"success": True, "message": msg}
+
+            # Check if text specifies Enter key at the end
+            press_enter = False
+            if text.endswith("\n") or text.endswith("\r\n"):
+                text = text.rstrip("\r\n")
+                press_enter = True
+
             try:
                 locator.wait_for(state="visible", timeout=3000)
-                # Standard fill
+                locator.focus(timeout=3000)
+                self.page.wait_for_timeout(200)
+                
+                # Select all and delete to clear existing text
+                self.page.keyboard.press("Control+A")
+                self.page.keyboard.press("Backspace")
+                self.page.wait_for_timeout(100)
+                
+                # Emulate real typing
+                self.page.keyboard.type(text)
+                self.page.wait_for_timeout(200)
+
+                if press_enter:
+                    self.page.keyboard.press("Enter")
+                    self.page.wait_for_timeout(500)
+                    
+                msg = f"Successfully typed text into '{selector}'"
+                logger.info(msg)
+                return {"success": True, "message": msg}
+            except Exception as keyboard_err:
+                logger.warning(f"Keyboard emulation failed on '{selector}': {keyboard_err}. Falling back to standard Playwright fill...")
+                # Fallback to standard fill
                 locator.fill("", timeout=3000)
                 locator.fill(text, timeout=3000)
-            except Exception as fill_err:
-                logger.warning(f"Standard fill on '{selector}' failed: {fill_err}. Retrying with focus and keyboard typing...")
-                try:
-                    locator.focus(timeout=3000)
-                    self.page.keyboard.press("Control+A")
-                    self.page.keyboard.press("Backspace")
-                    self.page.keyboard.type(text)
-                except Exception as focus_err:
-                    logger.error(f"Fallback keyboard typing failed: {focus_err}")
-                    raise focus_err
-                    
-            msg = f"Successfully entered text into '{selector}'"
-            logger.info(msg)
-            return {"success": True, "message": msg}
+                if press_enter:
+                    locator.press("Enter")
+                msg = f"Successfully filled '{selector}' via fallback"
+                logger.info(msg)
+                return {"success": True, "message": msg}
         except Exception as e:
             self.take_screenshot("error_send_keys")
             msg = f"Error typing keys into '{selector}': {str(e)}"
