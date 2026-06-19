@@ -159,6 +159,16 @@ class LLMClient:
                 return text_content, tool_calls
                 
             except Exception as e:
+                err_msg = str(e).lower()
+                if "api_key" in err_msg or "auth" in err_msg or "unauthorized" in err_msg:
+                    logger.error(f"Authentication failure: Please check your API key in .env. Details: {e}")
+                    raise ValueError(f"Invalid API Key. Please update your .env file. Details: {e}") from e
+                elif "rate_limit" in err_msg or "429" in err_msg or "tpm" in err_msg or "rpm" in err_msg:
+                    logger.warning(f"API Rate Limit hit (TPM/RPM limits). Backing off for 10 seconds. Attempt {attempt}/{attempts}...")
+                    time.sleep(10)
+                    last_exception = e
+                    continue
+                
                 logger.warning(f"API call attempt {attempt} failed: {str(e)}")
                 last_exception = e
                 # Wait before retry with simple exponential backoff
