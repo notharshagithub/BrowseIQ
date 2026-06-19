@@ -6,12 +6,12 @@ from agent.agent import WebsiteAutomationAgent
 import agent.theme as theme
 
 def main():
-    """Main entrypoint to run the Website Automation Agent in a persistent browser console."""
+    """Main entrypoint to run the BrowseIQ Agent in a persistent browser console."""
     # Ensure standard logging is set up
     logger = logging.getLogger("main")
     
     # Setup argparse CLI parameter parser
-    parser = argparse.ArgumentParser(description="AI Website Automation Agent CLI Console")
+    parser = argparse.ArgumentParser(description="BrowseIQ CLI Console")
     parser.add_argument("-u", "--url", type=str, help="Default target URL to load on launch")
     parser.add_argument("--headless", action="store_true", help="Launch browser in headless mode")
     parser.add_argument("--headful", action="store_true", help="Launch browser in headful mode (visible window)")
