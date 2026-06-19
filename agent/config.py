@@ -62,3 +62,5 @@ def print_config():
     logger.info(f"API Key present: {'Yes' if XAI_API_KEY else 'No'}")
     logger.info(f"Using Groq Mode: {is_groq}")
     logger.info("------------------------")
+
+# Verified config variables
