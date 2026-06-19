@@ -6,18 +6,72 @@ Provides neon color definitions, custom state formatting, status cards, and diag
 import sys
 import os
 
-# ANSI Neon/Cyberpunk Theme Colors
-CYAN = "\033[38;5;51m"       # Neon Cyan
-GREEN = "\033[38;5;82m"      # Neon Green
-MAGENTA = "\033[38;5;201m"   # Pink/Magenta
-ORANGE = "\033[38;5;208m"    # Warm Orange/Warning
-RED = "\033[38;5;196m"       # Alarm Red
-YELLOW = "\033[38;5;226m"    # Cyber Yellow
-GRAY = "\033[38;5;244m"      # Dark Gray
-BLUE = "\033[38;5;39m"       # Deep Sky Blue
+# Theme Color Palettes
+THEMES = {
+    "cyberpunk": {
+        "CYAN": "\033[38;5;51m",       # Neon Cyan
+        "GREEN": "\033[38;5;82m",      # Neon Green
+        "MAGENTA": "\033[38;5;201m",   # Pink/Magenta
+        "ORANGE": "\033[38;5;208m",    # Warm Orange
+        "RED": "\033[38;5;196m",       # Alarm Red
+        "YELLOW": "\033[38;5;226m",    # Cyber Yellow
+        "GRAY": "\033[38;5;244m",      # Dark Gray
+        "BLUE": "\033[38;5;39m",       # Deep Sky Blue
+    },
+    "retro": {
+        "CYAN": "\033[38;5;214m",      # Amber/Orange
+        "GREEN": "\033[38;5;214m",      # Amber
+        "MAGENTA": "\033[38;5;208m",    # Warm Orange
+        "ORANGE": "\033[38;5;166m",     # Dark Amber
+        "RED": "\033[31m",              # Red
+        "YELLOW": "\033[38;5;220m",     # Yellow
+        "GRAY": "\033[38;5;240m",       # Darker Gray
+        "BLUE": "\033[38;5;172m",       # Brownish Orange
+    },
+    "matrix": {
+        "CYAN": "\033[32m",             # Dark Green
+        "GREEN": "\033[1;32m",           # Bold Green
+        "MAGENTA": "\033[38;5;46m",     # Neon Green
+        "ORANGE": "\033[33m",           # Yellow/Orange
+        "RED": "\033[31m",              # Red
+        "YELLOW": "\033[1;32m",         # Bold Green
+        "GRAY": "\033[38;5;238m",       # Deep gray
+        "BLUE": "\033[32m",             # Dark Green
+    }
+}
+
+CURRENT_THEME = "cyberpunk"
+
+# Initialize variables
+CYAN = THEMES["cyberpunk"]["CYAN"]
+GREEN = THEMES["cyberpunk"]["GREEN"]
+MAGENTA = THEMES["cyberpunk"]["MAGENTA"]
+ORANGE = THEMES["cyberpunk"]["ORANGE"]
+RED = THEMES["cyberpunk"]["RED"]
+YELLOW = THEMES["cyberpunk"]["YELLOW"]
+GRAY = THEMES["cyberpunk"]["GRAY"]
+BLUE = THEMES["cyberpunk"]["BLUE"]
+
 BOLD = "\033[1m"
 UNDERLINE = "\033[4m"
 RESET = "\033[0m"
+
+def set_theme(name: str):
+    """Sets the active color scheme by theme name."""
+    global CURRENT_THEME, CYAN, GREEN, MAGENTA, ORANGE, RED, YELLOW, GRAY, BLUE
+    if name not in THEMES:
+        name = "cyberpunk"
+    CURRENT_THEME = name
+    t = THEMES[name]
+    CYAN = t["CYAN"]
+    GREEN = t["GREEN"]
+    MAGENTA = t["MAGENTA"]
+    ORANGE = t["ORANGE"]
+    RED = t["RED"]
+    YELLOW = t["YELLOW"]
+    GRAY = t["GRAY"]
+    BLUE = t["BLUE"]
+
 
 # UI Borders and Shapes
 DOUBLE_LINE = "═"
