@@ -613,3 +613,5 @@ GROK_TOOLS = [
 # Resolve Playwright CSS selectors
 
 # Keyboard typing emulation fallback handler
+
+# Scroll page vertically with fallback options
