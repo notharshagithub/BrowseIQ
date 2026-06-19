@@ -71,3 +71,5 @@ class TestTheme(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+# Theme rendering console tests
