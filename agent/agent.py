@@ -51,6 +51,7 @@ class WebsiteAutomationAgent:
         self.task_completed = False
         self.session_active = False
         self.current_url = None # Track current website URL
+        self.last_failure_reason = None
         
         # Build tools list for Grok including the completion tool
         self.tools = list(GROK_TOOLS)
@@ -119,16 +120,19 @@ class WebsiteAutomationAgent:
 
     def run_task(self, task_description: str, max_steps: int = 5) -> bool:
         """Performs a task description on the already-opened webpage state, loops autonomously to complete it."""
+        self.last_failure_reason = None
         if not self.is_session_healthy:
             logger.info("Browser session is not healthy or has been closed. Re-starting session...")
             self.close_session()
             if not self.start_session(headless=config.HEADLESS):
                 logger.error("Failed to restart browser session for task execution.")
+                self.last_failure_reason = "Could not initialize or launch browser context."
                 return False
             if self.current_url:
                 logger.info(f"Re-navigating to {self.current_url}...")
                 if not self.navigate_to(self.current_url):
                     logger.error(f"Failed to re-navigate to {self.current_url}")
+                    self.last_failure_reason = f"Failed to re-navigate to initial URL: {self.current_url}"
                     return False
             
         # Reset task status and clear old history to avoid LLM confusion from previous tasks
@@ -194,6 +198,7 @@ You must call `task_complete` with a brief summary when you have completed the u
                 except Exception as e:
                     logger.error(f"Error calling LLM API: {e}")
                     self.browser_manager.take_screenshot("error_llm_api.png")
+                    self.last_failure_reason = f"LLM API query exception: {str(e)}"
                     break
                 
                 if text_content:
@@ -238,6 +243,9 @@ You must call `task_complete` with a brief summary when you have completed the u
                     tool_result = self.execute_tool(name, args)
                     logger.info(f"OBSERVATION: Tool '{name}' returned: {tool_result}")
                     
+                    if not tool_result.get("success", False):
+                        self.last_failure_reason = f"Actuator tool '{name}' execution failed: {tool_result.get('message', 'No detail message')}"
+                    
                     self.conversation_history.append({
                         "role": "tool",
                         "tool_call_id": tc.id,
@@ -257,11 +265,14 @@ You must call `task_complete` with a brief summary when you have completed the u
                 if not getattr(self, "screenshot_taken", False):
                     self.browser_manager.take_screenshot(f"task_{self.step_count}_failure.png")
                 logger.error(f"RESULT: Task '{task_description}' finished without completion signal or failed.")
+                if not self.last_failure_reason:
+                    self.last_failure_reason = f"Task exceeded limit of {max_steps} steps without signaling task_complete."
                 return False
                 
         except Exception as e:
             logger.error(f"Fatal error in task loop: {e}", exc_info=True)
             self.browser_manager.take_screenshot("error_fatal.png")
+            self.last_failure_reason = f"Fatal agent coordinator crash: {str(e)}"
             return False
 
     def execute_tool(self, name: str, arguments: dict) -> dict:
