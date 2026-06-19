@@ -1,0 +1,9 @@
+.env
+screenshots/
+logs/
+venv/
+__pycache__/
+*.pyc
+.tempmediaStorage/
+brain/
+scratch/
