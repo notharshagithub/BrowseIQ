@@ -17,6 +17,16 @@ class TestTheme(unittest.TestCase):
         self.assertTrue(len(theme.GREEN) > 0)
         self.assertTrue(len(theme.RESET) > 0)
 
+    def test_set_theme(self):
+        """Verify set_theme switches CURRENT_THEME and modifies color variables."""
+        theme.set_theme("retro")
+        self.assertEqual(theme.CURRENT_THEME, "retro")
+        self.assertEqual(theme.CYAN, theme.THEMES["retro"]["CYAN"])
+        
+        # Reset back to cyberpunk
+        theme.set_theme("cyberpunk")
+        self.assertEqual(theme.CURRENT_THEME, "cyberpunk")
+
     @patch('sys.stdout', new_callable=StringIO)
     def test_print_horizontal_divider(self, mock_stdout):
         """Test the horizontal divider output formatting."""
