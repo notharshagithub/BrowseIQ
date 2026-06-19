@@ -28,7 +28,7 @@ export default function BrowserMockup({ sessionUrl, screenshot }) {
         ) : (
           <div className="viewport-placeholder" id="viewport-blank">
             <Monitor className="placeholder-icon" />
-            <p>No active website session. Enter a URL on the left panel to connect.</p>
+            <p>No active website session. Enter a URL in the terminal command line below to connect.</p>
           </div>
         )}
       </div>
