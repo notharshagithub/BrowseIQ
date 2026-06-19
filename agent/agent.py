@@ -6,6 +6,7 @@ import time
 import agent.config as config
 from agent.tools import PlaywrightBrowserManager, GROK_TOOLS
 from agent.llm_client import LLMClient
+import agent.theme as theme
 
 # Setup logging configuration
 # Configure logger to save verbose output to file, but keep terminal output clean
@@ -52,6 +53,7 @@ class WebsiteAutomationAgent:
         self.session_active = False
         self.current_url = None # Track current website URL
         self.last_failure_reason = None
+        self.success_summary = None
         
         # Build tools list for Grok including the completion tool
         self.tools = list(GROK_TOOLS)
@@ -121,6 +123,7 @@ class WebsiteAutomationAgent:
     def run_task(self, task_description: str, max_steps: int = 5) -> bool:
         """Performs a task description on the already-opened webpage state, loops autonomously to complete it."""
         self.last_failure_reason = None
+        self.success_summary = None
         if not self.is_session_healthy:
             logger.info("Browser session is not healthy or has been closed. Re-starting session...")
             self.close_session()
@@ -175,6 +178,7 @@ You must call `task_complete` with a brief summary when you have completed the u
                 task_step += 1
                 self.step_count += 1
                 logger.info(f"\n=== AGENT LOOP STEP {task_step}/{max_steps} (Global Step: {self.step_count}) ===")
+                theme.print_step_header(task_step, max_steps, self.step_count)
                 
                 # a. Perceive: Only take screenshot if we are using a vision-capable model to save disk/tokens
                 screenshot_path = None
@@ -238,10 +242,12 @@ You must call `task_complete` with a brief summary when you have completed the u
                         args = {}
                         
                     logger.info(f"ACTING: Executing tool '{name}' with args {args}")
+                    theme.print_tool_execution(name, args)
                     
                     # Execute tool action
                     tool_result = self.execute_tool(name, args)
                     logger.info(f"OBSERVATION: Tool '{name}' returned: {tool_result}")
+                    theme.print_tool_observation(tool_result)
                     
                     if not tool_result.get("success", False):
                         self.last_failure_reason = f"Actuator tool '{name}' execution failed: {tool_result.get('message', 'No detail message')}"
@@ -260,6 +266,7 @@ You must call `task_complete` with a brief summary when you have completed the u
                 if not getattr(self, "screenshot_taken", False):
                     self.browser_manager.take_screenshot(f"task_{self.step_count}_success.png")
                 logger.info(f"RESULT: Task '{task_description}' successfully completed.")
+                theme.print_success_card(getattr(self, "success_summary", "Task completed successfully."))
                 return True
             else:
                 if not getattr(self, "screenshot_taken", False):
@@ -267,12 +274,14 @@ You must call `task_complete` with a brief summary when you have completed the u
                 logger.error(f"RESULT: Task '{task_description}' finished without completion signal or failed.")
                 if not self.last_failure_reason:
                     self.last_failure_reason = f"Task exceeded limit of {max_steps} steps without signaling task_complete."
+                theme.print_failure_card(self.last_failure_reason, task_step)
                 return False
                 
         except Exception as e:
             logger.error(f"Fatal error in task loop: {e}", exc_info=True)
             self.browser_manager.take_screenshot("error_fatal.png")
             self.last_failure_reason = f"Fatal agent coordinator crash: {str(e)}"
+            theme.print_failure_card(self.last_failure_reason, task_step)
             return False
 
     def execute_tool(self, name: str, arguments: dict) -> dict:
@@ -281,6 +290,7 @@ You must call `task_complete` with a brief summary when you have completed the u
             if name == "task_complete":
                 summary = arguments.get("summary", "Task finished.")
                 self.task_completed = True
+                self.success_summary = summary
                 return {"success": True, "message": f"Task complete acknowledged: {summary}"}
                 
             elif name == "open_browser":
