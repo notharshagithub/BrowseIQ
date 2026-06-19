@@ -64,3 +64,5 @@ def print_config():
     logger.info("------------------------")
 
 # Verified config variables
+
+# Load local environment variables dynamically
