@@ -261,3 +261,5 @@ def print_error_boundary(title: str, error_message: str):
     print(f"\n{ORANGE}{BOLD}⚠ SYSTEM ALERT: {title}{RESET}")
     print(f"  {GRAY}Details:{RESET} {error_message}")
     print_horizontal_divider(SINGLE_LINE, ORANGE)
+
+# Theme presets config options
