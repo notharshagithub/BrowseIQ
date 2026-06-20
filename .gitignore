@@ -7,3 +7,5 @@ __pycache__/
 .tempmediaStorage/
 brain/
 scratch/
+static/
+.agents
