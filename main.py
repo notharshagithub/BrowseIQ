@@ -193,4 +193,12 @@ def disconnect():
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    # Watch source code but ignore logs, screenshots, and static assets to prevent infinite reload loops
+    uvicorn.run(
+        "main:app", 
+        host="127.0.0.1", 
+        port=8000, 
+        reload=True,
+        reload_dirs=[os.path.dirname(os.path.abspath(__file__))],
+        reload_excludes=["logs/*", "screenshots/*", "static/*", "frontend/*", "*.log"]
+    )
