@@ -101,7 +101,7 @@
 /* Right Viewer Panel and Cognitive Console Logs layout */
 .viewer-container {
   display: grid;
-  grid-template-rows: 1fr 280px; /* Increase terminal height slightly for the input prompt */
+  grid-template-rows: 1fr 200px; /* Compact terminal height to maximize space for virtual browser mockup */
   height: 100%;
   overflow: hidden;
   background: transparent;
