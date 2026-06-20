@@ -161,6 +161,24 @@ To develop with live hot-reloading (HMR):
 
 ---
 
+## 🌐 Deployment (e.g. Vercel)
+
+BrowseIQ can be deployed for remote access. Due to the distinct architectural requirements of the frontend and the backend, they should be deployed as follows:
+
+### 1. Frontend (Vercel)
+The React/Vite frontend is fully optimized to be deployed to **Vercel** as a standalone static site.
+* **Root Directory**: Set Vercel's root directory to `frontend/`.
+* **Build Configuration**: Build command is `npm run build`, and output directory is `dist` (the config dynamically falls back from `static/` to `dist` when `VERCEL=1` is detected).
+* **API Routing**: Define the environment variable `VITE_API_BASE_URL` in the Vercel Dashboard, pointing to your deployed backend domain (e.g., `https://browseiq-backend.onrender.com`). Do not include a trailing slash.
+
+### 2. Backend (Render, Railway, Fly.io, or VPS)
+Because the backend coordinates execution using a persistent background worker queue and launches **Playwright Chromium browsers**, **it cannot be hosted on Vercel Serverless Functions**. Serverless hosts enforce request timeouts, do not persist background thread contexts, and lack Chromium system libraries.
+* **Target Platforms**: Deploy the backend to a persistent container runtime like **Render**, **Railway**, **Fly.io**, or any VPS.
+* **Build Command**: `pip install -r requirements.txt && python3 -m playwright install chromium`
+* **CORS Support**: The FastAPI server is pre-configured with CORS middleware to accept incoming cross-origin requests from your Vercel frontend URL.
+
+---
+
 ## 🧪 Testing
 Run the Python test suite to verify agent routines and tool mapping functions:
 ```bash

@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const isVercel = process.env.VERCEL === '1';
+
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/static/',
+  base: isVercel ? '/' : '/static/',
   plugins: [react()],
   server: {
     proxy: {
@@ -18,7 +20,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: '../static',
+    outDir: isVercel ? 'dist' : '../static',
     emptyOutDir: true,
   }
 })

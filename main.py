@@ -19,6 +19,16 @@ logger = logging.getLogger("main_web")
 
 app = FastAPI(title="BrowseIQ Web Interface")
 
+# Enable CORS middleware to support cross-origin API calls (e.g. from Vercel frontend)
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Ensure screenshots and static directories exist
 STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "static"))
 os.makedirs(STATIC_DIR, exist_ok=True)

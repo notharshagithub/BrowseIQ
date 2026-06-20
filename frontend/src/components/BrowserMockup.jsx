@@ -1,8 +1,16 @@
 import { Lock, Monitor } from 'lucide-react';
+import { API_BASE_URL } from '../services/api';
 
 export default function BrowserMockup({ sessionUrl, screenshot }) {
+  // Resolve relative backend media paths
+  const getFullUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return `${API_BASE_URL}${path}`;
+  };
+
   // Prevent browser screenshot caching by adding a unique query param
-  const screenshotUrl = screenshot ? `${screenshot}?t=${new Date().getTime()}` : null;
+  const screenshotUrl = screenshot ? `${getFullUrl(screenshot)}?t=${new Date().getTime()}` : null;
 
   return (
     <div className="browser-mockup">
