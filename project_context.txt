@@ -2,49 +2,82 @@
                            BrowseIQ Project Context
 ================================================================================
 
-This document serves as a persistent context log for BrowseIQ browser automation agent. It details the project history, architecture, and recent refactoring milestones.
+This document serves as a persistent context log and memory file for BrowseIQ. It details the complete project history, list of user requests, commits, and architectural milestones.
 
 --------------------------------------------------------------------------------
-1. Project Overview & Architecture
+1. Complete Project History & User Requests Log
 --------------------------------------------------------------------------------
-BrowseIQ is an LLM-driven autonomous browser automation agent running on a perceive-decide-act cycle.
-- Backend: FastAPI (Python 3) driving Playwright.
-- Agent Coordinator (agent/agent.py): Controls the browser manager state, captures DOM interactives, sends them alongside the JPEG-compressed/resized screenshot to the LLM client (agent/llm_client.py), executes the selected actions (click, text inputs, etc.), and checks for completion.
-- Provider Support: Auto-routes Groq LPUs or xAI Grok based on the API key prefix.
-- Execution: python3 main.py serves the application.
+Below is the full chronological sequence of requests and how they were resolved:
+
+*   **Request 1 & 2**: Document supported agent prompts and commands in the README.
+    *   *Resolution*: Removed obsolete feature lists and added a dedicated section in README.md detailing supported instructions (Site Navigation, Clicking & Selection, Form Inputs & Typing, Scrolling, Double Clicking, and Ending Tasks).
+*   **Request 3**: Push the workspace code to a new remote repository while keeping the old repository unchanged.
+    *   *Resolution*: Added a new git remote `https://github.com/notharshagithub/BrowseIQ.git` and pushed all changes under the user profile `notharshagit <harshashetty256@gmail.com>`.
+*   **Request 4**: Migrate the CLI-based browser agent to a Web-based interface that connects to browser sessions, executes autopilot tasks, and displays real-time screenshots in the browser view.
+    *   *Resolution*: Created the initial single-page HTML/CSS/JS frontend served by FastAPI on port 8000 and routed commands dynamically using custom REST endpoints (/api/connect, /api/run-task, /api/disconnect, /api/status).
+*   **Request 5 & 6**: Fix runtime bugs and errors when running the agent loop.
+    *   *Resolution*: Patched browser managers, configured viewport-filtered element extraction (ignoring Tailwind special characters and nested elements to prevent visual token bloat), and added fallback query accessible labeling.
+*   **Request 7**: Do not combine changes into single massive commits; instead, split changes logically across multiple commits.
+    *   *Resolution*: Maintained modular staging and commits for every task.
+*   **Request 8 & 9**: Theme refinement (gradient and vibrant design colors) and fix UX issues (auto-clearing text boxes and log feeds when running the agent loop).
+    *   *Resolution*: Created a cyberpunk dark theme layout (using neon-cyan, neon-pink, neon-purple, neon-green accents). Patched JS handlers to instantly reset task inputs and clear terminal panes on autopilot loop launch.
+*   **Request 10**: Avoid writing plain HTML/CSS inside a single file; use modular libraries and segment the project.
+    *   *Resolution*: Scaffolded a Vite-React app under `frontend/` directory, segmenting code into high-level React components (`Header.jsx`, `BrowserMockup.jsx`, `TelemetryFeed.jsx`) and dedicated stylesheets (`index.css` and `App.css`).
+*   **Request 11 (Unified Input request)**: Integrate the input box inside the terminal looking panel at the bottom, removing the left control panel to make it widescreen.
+    *   *Resolution*: Consolidated connection and autopilot prompt inputs into a single text command prompt inside TelemetryFeed.jsx. Integrated smart routing heuristics: URLs (or navigate commands) connect to target sites, other text launches the agent loop, and "disconnect" or "clear" act as console shortcuts.
+*   **Request 12 (Placeholder UI bug)**: Fix references to the "left panel" inside the browser viewport placeholder text.
+    *   *Resolution*: Updated placeholder text in BrowserMockup.jsx to instruct: "No active website session. Enter a URL in the terminal command line below to connect."
+*   **Request 13 (Infinite Reload loops)**: Fix the issue where running tasks would reload/restart multiple times.
+    *   *Resolution*: Reconfigured Uvicorn startup settings in main.py to watch only the source directory and exclude logs, screenshots, and static folders from the uvicorn reload trigger. This prevents infinite server reload loops caused by the agent saving screenshots or appending to agent.log during execution.
+*   **Request 14 (Adhere to simple/single tasks)**: Ensure the agent stops immediately and does not do extra unrequested work for single-action tasks.
+    *   *Resolution*: Augmented the system prompt in agent.py with explicit guidelines distinguishing between simple/single-action tasks (e.g. "click login") and multi-action tasks. The agent is instructed to call task_complete and stop immediately once the target task is met, avoiding speculative helper behaviors.
+*   **Request 15 (Optimisation and Readability Refactoring)**: Make the entire project highly structured and modular.
+    *   *Resolution*: Segregated the bulky tools.py backend file into two dedicated files: browser_manager.py (PlaywrightBrowserManager logic) and tool_definitions.py (JSON tool schemas). Re-routed tools.py to act as a clean exporter facade. On the frontend, extracted REST API requests from App.jsx into a dedicated services/api.js module, improving overall modularity and codebase maintainability.
+*   **Request 16 (Advanced Motion Design System & Homepage)**: Design and build a premium motion-oriented homepage and apply smooth motion design specs across the entire UI.
+    *   *Resolution*: Installed framer-motion and constructed a Stripe/Linear-style landing page (Homepage.jsx) with a custom trailing cursor glow, spring-animated magnetic primary buttons, and staggered reveal animations. Refactored App.jsx and Header.jsx to include a navigation toggle between Home and Workspace views, wrapping the transitions in smooth, premium fade-in/up animations (duration 0.45s, easeOut) with zero layout shifts.
+*   **Request 17 (Homepage Scrolling Fix)**: Correct CSS constraints preventing the Homepage view from scrolling.
+    *   *Resolution*: Changed the height setting from min-height: calc(100vh - 3.5rem) to height: 100% on .homepage-container inside App.css, set width: 100% to avoid scrollbar horizontal layout shifts, and enabled scroll-behavior: smooth. This allows the page container to scroll within the parent main viewport boundaries correctly.
 
 --------------------------------------------------------------------------------
-2. Web UI Migration Refactoring
+2. Core Web UI Component Architecture
 --------------------------------------------------------------------------------
-The application was migrated from a CLI utility into a modern single-page dashboard:
-- Framework: React (JSX) built with Vite in the `frontend/` subdirectory.
-- Design System: Cyberpunk neon dark theme utilizing CSS variables, glassmorphism panel styles, and Lucide SVG icons.
-- FastAPI Server Mounts: FastAPI mounts the `static/` directory to serve files. Vite is configured (vite.config.js) with `base: '/static/'` and `build.outDir: '../static'` (with `emptyOutDir: true`). Running `npm run build` compiles production assets directly into the FastAPI server's static mount directory, avoiding separate file serving issues.
+- **Header.jsx**: Top navigation bar displaying Logo, branding, and dynamic status indicators (STANDBY, CONNECTING, CONNECTED, RUNNING, ERROR, FAILED).
+- **BrowserMockup.jsx**: Mock browser chassis showing mock window toolbar controls, the current address URL, and the active session viewport screenshot (resizing automatically with anti-caching timestamp query parameters).
+- **TelemetryFeed.jsx**: Scrollable terminal log box displaying color-coded thoughts, actions, and observations. Includes a command prompt line (`BrowseIQ >`) with a Max Step Limit selector and Send button.
 
 --------------------------------------------------------------------------------
-3. Single Command Prompt Terminal Layout (Recent Changes)
+3. FastAPI & Build Integration
 --------------------------------------------------------------------------------
-To optimize widescreen visibility and streamline controls:
-- Layout: Switched to a single-column widescreen dashboard. The left NavigationCard and TaskCard controls were removed.
-- Integrated Input Prompt: A single unified text command prompt was added to the bottom of the Terminal panel (TelemetryFeed.jsx), directly below the browser mockup screenshot view.
-- Smart Prompt Routing:
-  - If input matches a URL (e.g., `google.com`, `http://...`) or starts with navigation commands (`go to `, `open `, `visit `, `navigate to `), it routes requests to navigation connection endpoints (/api/connect).
-  - Otherwise, input is sent to the autonomous agent autopilot task loop (/api/run-task).
-  - Special Commands: Typing "disconnect" or "clear" runs session close/log clearing handlers.
-  - Step Limit Options: The step count limit dropdown is placed next to the send button inside the prompt.
+- **Vite Configuration (vite.config.js)**:
+  - `base: '/static/'` maps all generated asset URLs.
+  - `build.outDir: '../static'` compiles production assets directly into the parent static folder, matching FastAPI's StaticFiles directory configuration.
+  - `server.proxy` proxies `/api` and `/screenshots` to port 8000.
+- **FastAPI Routing (main.py)**:
+  - Serving root `/` returns `static/index.html`.
+  - Static files mounted as `/static` point directly to the compiled static asset folder.
 
 --------------------------------------------------------------------------------
-4. Verification Status
+4. Project Git Commits Reference
 --------------------------------------------------------------------------------
-- Python test suite: Discover discovers 12 unit tests, all passing cleanly.
-- Frontend: Source code passes ESLint with 0 warnings or errors. Production builds compile successfully.
-- Repository: Main origin remote maps to: https://github.com/notharshagithub/BrowseIQ.git.
+Below is the list of logical commits made during the Web UI refactoring:
+- **Commit 7**: `Style Refactor: Segment CSS rules out of index.html into a dedicated static/styles.css stylesheet`
+- **Commit 8**: `JS Refactor: Segment JavaScript control logic out of index.html into a dedicated static/app.js file`
+- **Commit 9**: `Refactor: Migrate frontend to a segmented React app built with Vite and Lucide Icons`
+- **Commit 10**: `Build: Compile React bundle and deploy built assets to FastAPI static folder`
+- **Commit 11**: `Fix: Resolve ESLint warnings regarding unused imports and parameters`
+- **Commit 12**: `Build: Compile updated React bundle and output static assets`
+- **Commit 13**: `Docs: Update README.md with Web UI run and build instructions`
+- **Commit 14**: `Refactor: Replace separate URL and Task controls with a single terminal command prompt`
+- **Commit 15**: `Build: Compile production assets for single command prompt terminal layout`
+- **Commit 16**: `Fix: Update placeholder text in BrowserMockup viewport to point to the terminal prompt`
+- **Commit 17**: `Build: Compile production assets for placeholder update`
+- **Commit 18**: `Docs: Add project_context.txt and agent rules configuration`
 
 --------------------------------------------------------------------------------
-5. Future Developer Guidelines
+5. Future Developer Instructions
 --------------------------------------------------------------------------------
-- Always run `npm run build` in the `frontend` directory after editing JSX/CSS files to generate updated assets in `static/`.
-- Run tests using `python3 -m unittest discover tests`.
-- Do not add multiple input panels or recreate sidebar navigation unless requested; the combined command line prompt inside the terminal dashboard is the default unified entry point.
-- Start server using `python3 main.py` to test uvicorn hosting on port 8000.
+- **Run Production Mode**: `python3 main.py` (FastAPI automatically hosts the compiled React App on http://127.0.0.1:8000).
+- **Run Development Mode**: Start `python3 main.py` (FastAPI backend), then start Vite dev server: `cd frontend && npm run dev` (opens on http://localhost:5173).
+- **Frontend Recompiles**: Run `npm run build` inside `frontend/` to re-output compiled assets into `static/`.
+- **Run Tests**: Run `python3 -m unittest discover tests`.
 ================================================================================

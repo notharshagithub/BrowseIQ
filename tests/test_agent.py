@@ -78,6 +78,5 @@ class TestAgent(unittest.TestCase):
         success = agent.run_task("Click some button", max_steps=3)
         self.assertFalse(success)
         self.assertEqual(agent.last_failure_reason, "CAPTCHA blocker encountered")
-
 if __name__ == '__main__':
     unittest.main()
