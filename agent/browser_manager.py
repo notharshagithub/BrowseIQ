@@ -23,7 +23,12 @@ class PlaywrightBrowserManager:
     def open_browser(self, headless: bool = False) -> dict:
         """Launches browser + page. Exposed to the LLM."""
         try:
-            logger.info(f"Launching browser (headless={headless})")
+            browser_url = os.environ.get("CONNECT_TO_BROWSER_URL")
+            if browser_url:
+                logger.info(f"Connecting to remote browser at {browser_url}")
+            else:
+                logger.info(f"Launching local browser (headless={headless})")
+
             if not self.playwright:
                 self.playwright = sync_playwright().start()
                 
@@ -33,10 +38,14 @@ class PlaywrightBrowserManager:
                         self.browser.close()
                 except Exception:
                     pass
-                self.browser = self.playwright.chromium.launch(
-                    headless=headless,
-                    args=["--no-sandbox", "--disable-setuid-sandbox"]
-                )
+                
+                if browser_url:
+                    self.browser = self.playwright.chromium.connect(browser_url)
+                else:
+                    self.browser = self.playwright.chromium.launch(
+                        headless=headless,
+                        args=["--no-sandbox", "--disable-setuid-sandbox"]
+                    )
                 self.context = None
                 self.page = None
                 

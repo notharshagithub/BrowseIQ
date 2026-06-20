@@ -40,8 +40,14 @@ HEADLESS = headless_env in ("true", "1", "yes")
 
 # Directory setup
 WORKSPACE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCREENSHOTS_DIR = os.getenv("SCREENSHOTS_DIR", os.path.join(WORKSPACE_DIR, "screenshots"))
-LOGS_DIR = os.getenv("LOGS_DIR", os.path.join(WORKSPACE_DIR, "logs"))
+is_vercel = os.getenv("VERCEL") == "1"
+
+if is_vercel:
+    SCREENSHOTS_DIR = os.getenv("SCREENSHOTS_DIR", "/tmp/screenshots")
+    LOGS_DIR = os.getenv("LOGS_DIR", "/tmp/logs")
+else:
+    SCREENSHOTS_DIR = os.getenv("SCREENSHOTS_DIR", os.path.join(WORKSPACE_DIR, "screenshots"))
+    LOGS_DIR = os.getenv("LOGS_DIR", os.path.join(WORKSPACE_DIR, "logs"))
 
 # Ensure folders exist
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
