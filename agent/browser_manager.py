@@ -40,7 +40,7 @@ class PlaywrightBrowserManager:
                     pass
                 
                 if browser_url:
-                    self.browser = self.playwright.chromium.connect(browser_url)
+                    self.browser = self.playwright.chromium.connect_over_cdp(browser_url)
                 else:
                     self.browser = self.playwright.chromium.launch(
                         headless=headless,

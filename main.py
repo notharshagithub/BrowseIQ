@@ -31,8 +31,11 @@ app.add_middleware(
 
 # Ensure screenshots and static directories exist
 STATIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "static"))
-os.makedirs(STATIC_DIR, exist_ok=True)
-os.makedirs(config.SCREENSHOTS_DIR, exist_ok=True)
+try:
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    os.makedirs(config.SCREENSHOTS_DIR, exist_ok=True)
+except OSError:
+    logger.warning("Could not create directories (may be on a read-only file system like Vercel).")
 
 # Mount screenshots directory to serve images dynamically
 app.mount("/screenshots", StaticFiles(directory=config.SCREENSHOTS_DIR), name="screenshots")

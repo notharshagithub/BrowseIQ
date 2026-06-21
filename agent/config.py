@@ -50,8 +50,11 @@ else:
     LOGS_DIR = os.getenv("LOGS_DIR", os.path.join(WORKSPACE_DIR, "logs"))
 
 # Ensure folders exist
-os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
-os.makedirs(LOGS_DIR, exist_ok=True)
+try:
+    os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+    os.makedirs(LOGS_DIR, exist_ok=True)
+except OSError:
+    pass
 
 def print_config():
     """Debug helper to print active config to logs (excluding credentials)"""
