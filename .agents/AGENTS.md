@@ -20,4 +20,4 @@ BrowseIQ is an LLM-driven browser automation workspace.
 ## Testing
 - Run test suite: `python3 -m unittest discover tests`.
 
-For a full history of the Web UI refactoring, check [project_context.txt](file:///home/harsha/Documents/browserAutomation/project_context.txt).
+For a full history of the Web UI refactoring, check [project_context.txt](file:///home/harsha/Documents/browserAutomation/doc/project_context.txt).
